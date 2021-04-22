@@ -1,4 +1,6 @@
 // https://github.com/actix/actix-extras/tree/master/actix-web-httpauth
+extern crate diesel;
+extern crate dotenv;
 
 use actix_cors::Cors;
 // use actix_service::Service;
@@ -7,10 +9,7 @@ use actix_web::{
     Responder,
 };
 
-#[get("/token")]
-async fn token_controller() -> impl Responder {
-    format!("Hello")
-}
+use chegde_v::router::*;
 
 #[get("/")]
 async fn home_controller() -> impl Responder {
@@ -35,8 +34,6 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
-
-use self::models;
 
 // pub fn create_post<'a>(conn: &PgConnection, title: &'a str, body: &'a str) -> SorryError {
 //     use diesel_demo::schema::posts::dsl::*;
