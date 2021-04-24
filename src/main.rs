@@ -41,11 +41,11 @@ async fn start_server() -> std::io::Result<()> {
 }
 
 fn main() {
-    // match start_server() {
-    //     Err(e) => println!("{:?}", e),
-    //     _ => (),
-    // }
-    task::block_on(mongo_test());
+    match start_server() {
+        Err(e) => println!("{:?}", e),
+        _ => (),
+    }
+    // task::block_on(mongo_test());
 
 
     // test_sqlite();

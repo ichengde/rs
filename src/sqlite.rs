@@ -41,6 +41,27 @@ pub fn test_sqlite() -> Result<()> {
   Ok(())
 }
 
+pub fn query(object_id: String) -> Result<Note, rusqlite::Error> {
+  let conn = get_db()?;
+
+  let mut stmt = conn.prepare(r#"SELECT id, title, content, user_id, type, create_time, object_id FROM note where object_id=(?)"#)?;
+  stmt.execute([object_id])?;
+
+  let note = stmt.query_row([], |row| {
+    Ok(Note {
+      id: row.get(0)?,
+      title: row.get(1)?,
+      content: row.get(2)?,
+      user_id: row.get(3)?,
+      r#type: row.get(4)?,
+      create_time: row.get(5)?,
+      object_id: row.get(6)?,
+    })
+  });
+
+  return note;
+}
+
 pub fn insert(note: Note) -> Result<()> {
   let conn = get_db()?;
 
