@@ -1,0 +1,16 @@
+PRAGMA foreign_keys = off;
+BEGIN TRANSACTION;
+
+CREATE TABLE note (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, user_id CHAR (255), type INT, create_time TIME, object_id CHAR (255));
+
+
+
+CREATE TABLE "user" (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	username TEXT NOT NULL,
+	password TEXT NOT NULL
+);
+
+
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;

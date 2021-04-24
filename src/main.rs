@@ -2,6 +2,7 @@
 extern crate diesel;
 extern crate dotenv;
 
+use async_std::task;
 use actix_cors::Cors;
 // use actix_service::Service;
 use actix_web::{
@@ -9,15 +10,18 @@ use actix_web::{
     Responder,
 };
 
+use chegde_v::mongo::*;
 use chegde_v::router::*;
+use chegde_v::sqlite::*;
 
-#[get("/")]
-async fn home_controller() -> impl Responder {
-    format!("hi")
+fn get_uri() -> &'static str {
+    "127.0.0.1:8088"
 }
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn start_server() -> std::io::Result<()> {
+    println!("start server {}", get_uri());
+
     HttpServer::new(|| {
         App::new()
             .wrap(
@@ -29,26 +33,21 @@ async fn main() -> std::io::Result<()> {
                     .max_age(3600),
             )
             .service(token_controller)
+            .service(home_controller)
     })
-    .bind("127.0.0.1:8088")?
+    .bind(get_uri())?
     .run()
     .await
 }
 
-// pub fn create_post<'a>(conn: &PgConnection, title: &'a str, body: &'a str) -> SorryError {
-//     use diesel_demo::schema::posts::dsl::*;
+fn main() {
+    // match start_server() {
+    //     Err(e) => println!("{:?}", e),
+    //     _ => (),
+    // }
+    task::block_on(mongo_test());
 
-//     let connection = establish_connection();
-//     let results = posts
-//         .filter(published.eq(true))
-//         .limit(5)
-//         .load::<Post>(&connection)
-//         .expect("Error loading posts");
 
-//     println!("Displaying {} posts", results.len());
-//     for post in results {
-//         println!("{}", post.title);
-//         println!("----------\n");
-//         println!("{}", post.body);
-//     }
-// }
+    // test_sqlite();
+    println!("hello {}", "world!");
+}
