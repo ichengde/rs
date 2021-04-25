@@ -17,13 +17,15 @@ pub async fn token_controller() -> impl Responder {
 }
 
 #[derive(Serialize)]
-struct Measurement {
-    temperature: f32,
+struct Error {
+    message: String,
 }
 
 #[get("/note/detail/{object_id}")]
 pub async fn note_detail(req: HttpRequest) -> impl Responder {
     let object_id = req.match_info().get("object_id").unwrap();
+    println!("{}", object_id);
+    let detail = query(object_id).unwrap();
 
-    return web::Json(query(object_id.to_string()).unwrap());
+    return web::Json(detail);
 }

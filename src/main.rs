@@ -2,8 +2,8 @@
 extern crate diesel;
 extern crate dotenv;
 
-use async_std::task;
 use actix_cors::Cors;
+use async_std::task;
 // use actix_service::Service;
 use actix_web::{
     error, get, http, http::StatusCode, post, web, App, HttpRequest, HttpResponse, HttpServer,
@@ -34,6 +34,7 @@ async fn start_server() -> std::io::Result<()> {
             )
             .service(token_controller)
             .service(home_controller)
+            .service(note_detail)
     })
     .bind(get_uri())?
     .run()
@@ -47,7 +48,5 @@ fn main() {
     }
     // task::block_on(mongo_test());
 
-
     // test_sqlite();
-    println!("hello {}", "world!");
 }
