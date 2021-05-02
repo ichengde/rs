@@ -18,9 +18,13 @@ pub struct Note {
     pub object_id: String,
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Serialize)]
 pub struct Website {
-    pub id: i32,
     pub name: String,
     pub site: String,
+}
+
+#[derive(Serialize)]
+pub struct ResponseType {
+    pub data: Vec<Website>,
 }

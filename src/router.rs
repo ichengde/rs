@@ -29,3 +29,22 @@ pub async fn note_detail(req: HttpRequest) -> impl Responder {
 
     return web::Json(detail);
 }
+
+use crate::diesel::prelude::*;
+use crate::models::system::*;
+use crate::postgres::*;
+
+#[get("/get_website")]
+pub async fn get_website() -> impl Responder {
+    use crate::schema::website::dsl::*;
+    let connection = establish_connection();
+    let results = website
+        .load::<Website>(&connection)
+        .expect("Error loading posts");
+
+    println!("Displaying {} posts", results.len());
+
+    let res = ResponseType { data: results };
+
+    return web::Json(res);
+}

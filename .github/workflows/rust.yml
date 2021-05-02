@@ -2,22 +2,21 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set Env
-      run: echo "${{ secrets.MY_ENV }}" >> $GITHUB_WORKSPACE/.env
+      - uses: actions/checkout@v2
+      - name: Set Env
+        run: echo "${{ secrets.MY_ENV }}" >> $GITHUB_WORKSPACE/.env
 
-    - name: Build
-      run: cargo build --verbose
+      - name: Build
+        run: cargo +nightly build --verbose

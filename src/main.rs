@@ -35,6 +35,7 @@ async fn start_server() -> std::io::Result<()> {
             .service(token_controller)
             .service(home_controller)
             .service(note_detail)
+            .service(get_website)
     })
     .bind(get_uri())?
     .run()
