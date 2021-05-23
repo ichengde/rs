@@ -6,9 +6,7 @@ name = "chegde-v"
 version = "0.0.1"
 
 [dependencies]
-actix-cors = "0.5.4"
-actix-rt = "2"
-actix-web = "3"
+actix-web = "4.0.0-beta.6"
 
 chrono = "0.4"
 diesel = { version = "1.4.4", features = ["postgres"] }
@@ -23,7 +21,7 @@ futures = { version = "0.3.5" }
 jwt = "0.13.0"
 
 async-std = "*"
-
+tokio-postgres = "*"
 [dependencies.mongodb]
 default-features = false
 features = ["async-std-runtime"]

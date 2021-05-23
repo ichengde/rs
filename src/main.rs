@@ -2,12 +2,11 @@
 extern crate diesel;
 extern crate dotenv;
 
-use actix_cors::Cors;
 use async_std::task;
 // use actix_service::Service;
 use actix_web::{
-    error, get, http, http::StatusCode, post, web, App, HttpRequest, HttpResponse, HttpServer,
-    Responder,
+    error, get, http, http::StatusCode, middleware, post, web, App, HttpRequest, HttpResponse,
+    HttpServer, Responder,
 };
 
 use chegde_v::mongo::*;
@@ -24,18 +23,14 @@ async fn start_server() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            .wrap(
-                Cors::default()
-                    .allowed_origin("http://localhost:52558")
-                    .allowed_methods(vec!["GET", "POST"])
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE)
-                    .max_age(3600),
-            )
+            .wrap(middleware::Logger::default())
+            .wrap(chegde_v::middleware::cors())
             .service(token_controller)
             .service(home_controller)
             .service(note_detail)
             .service(get_website)
+            // .service(login)
+            .default_service(web::to(|| HttpResponse::Ok()))
     })
     .bind(get_uri())?
     .run()

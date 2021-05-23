@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Queryable, Serialize)]
 pub struct User {
-    pub id: Option<i32>,
+    pub id: i32,
     pub username: String,
     pub password: String,
+    pub object_id: String,
 }
 
 #[derive(Debug, Serialize)]

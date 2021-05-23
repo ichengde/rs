@@ -3,4 +3,5 @@ table! {
       name -> Text,
       site -> Text,
   }
+
 }
