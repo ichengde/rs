@@ -4,6 +4,9 @@ use actix_web::{get, web, HttpRequest, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::{Result, Value};
 
+use crate::diesel::prelude::*;
+use crate::models::system::*;
+use crate::postgres::*;
 use crate::sqlite::query;
 
 #[get("/")]
@@ -30,11 +33,8 @@ pub async fn note_detail(req: HttpRequest) -> impl Responder {
     return web::Json(detail);
 }
 
-use crate::diesel::prelude::*;
-use crate::models::system::*;
-use crate::postgres::*;
 
-#[get("/get_website")]
+#[get("/website")]
 pub async fn get_website() -> impl Responder {
     use crate::schema::website::dsl::*;
     let connection = establish_connection();
