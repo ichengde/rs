@@ -49,7 +49,7 @@ pub async fn get_website() -> impl Responder {
     return web::Json(res);
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Info {
     username: String,
     password: String,
@@ -63,19 +63,37 @@ pub struct UserTable {
     object_id: String,
 }
 
-// #[post("/login")]
-// pub async fn login(info: web::Json<Info>) -> impl Responder {
-//     let mut conn = pg_connect();
-//     let row = &conn.await.query_one(
-//         "SELECT * FROM public.user where username='$1' and password='$2'",
-//         &[&info.username, &info.password],
-//     );
+#[post("/login")]
+pub async fn login(info: web::Json<Info>) -> impl Responder {
+    let client = pg_connect();
+    let row = client
+        .await
+        .query_one(
+            "SELECT * FROM public.user where username='$1' and password='$2'",
+            &[&info.username, &info.password],
+        )
+        .await;
 
-//     let person = UserTable {
-//         id: row.get(0),
-//         username: row.get(1),
-//         password: row.get(2),
-//         object_id: row.get(3),
-//     };
-//     web::Json(person)
-// }
+    println!("{:?}", info);
+    match row {
+        Ok(r) => {
+            let person = UserTable {
+                id: r.get(0),
+                username: r.get(1),
+                password: r.get(2),
+                object_id: r.get(3),
+            };
+            web::Json(person)
+        }
+        Err(err) => {
+            println!("error {:?}", err);
+            let person = UserTable {
+                id: 12,
+                username: "sad".to_string(),
+                password: "sad".to_string(),
+                object_id: "sad".to_string(),
+            };
+            web::Json(person)
+        }
+    }
+}
