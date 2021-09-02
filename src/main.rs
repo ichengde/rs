@@ -1,9 +1,9 @@
 // https://github.dev/actix/examples/tree/master/database_interactions/pg
 
+#[macro_use]
 extern crate diesel;
 
 use dotenv::dotenv;
-use handlers::add_user;
 use tokio_postgres::NoTls;
 
 use async_std::task;
@@ -13,117 +13,22 @@ use actix_web::{
     HttpServer, Responder,
 };
 
-use chegde_v::mongo::*;
-use chegde_v::router::*;
-use chegde_v::sqlite::*;
+mod config;
+mod cors;
+mod db;
+mod errors;
+mod models;
+mod mongo;
+mod postgres;
+mod redirect;
+mod router;
+mod schema;
+mod sqlite;
 
-mod config {
-    pub use ::config::ConfigError;
-    use serde::Deserialize;
-    #[derive(Deserialize)]
-    pub struct Config {
-        pub server_addr: String,
-        pub pg: deadpool_postgres::Config,
-    }
-    impl Config {
-        pub fn from_env() -> Result<Self, ConfigError> {
-            let mut cfg = ::config::Config::new();
-            cfg.merge(::config::Environment::new())?;
-            cfg.try_into()
-        }
-    }
-}
-
-mod models {
-    use serde::{Deserialize, Serialize};
-    use tokio_pg_mapper_derive::PostgresMapper;
-
-    #[derive(Deserialize, PostgresMapper, Serialize)]
-    #[pg_mapper(table = "users")]
-    pub struct User {
-        pub email: String,
-        pub first_name: String,
-        pub last_name: String,
-        pub username: String,
-    }
-}
-
-mod errors {
-    use actix_web::{HttpResponse, ResponseError};
-    use deadpool_postgres::PoolError;
-    use derive_more::{Display, From};
-    use tokio_pg_mapper::Error as PGMError;
-    use tokio_postgres::error::Error as PGError;
-
-    #[derive(Display, From, Debug)]
-    pub enum MyError {
-        NotFound,
-        PGError(PGError),
-        PGMError(PGMError),
-        PoolError(PoolError),
-    }
-    impl std::error::Error for MyError {}
-
-    impl ResponseError for MyError {
-        fn error_response(&self) -> HttpResponse {
-            match *self {
-                MyError::NotFound => HttpResponse::NotFound().finish(),
-                MyError::PoolError(ref err) => {
-                    HttpResponse::InternalServerError().body(err.to_string())
-                }
-                _ => HttpResponse::InternalServerError().finish(),
-            }
-        }
-    }
-}
-
-mod db {
-    use crate::{errors::MyError, models::User};
-    use deadpool_postgres::Client;
-    use tokio_pg_mapper::FromTokioPostgresRow;
-
-    pub async fn add_user(client: &Client, user_info: User) -> Result<User, MyError> {
-        let _stmt = include_str!("../sql/add_user.sql");
-        let _stmt = _stmt.replace("$table_fields", &User::sql_table_fields());
-        let stmt = client.prepare(&_stmt).await.unwrap();
-
-        client
-            .query(
-                &stmt,
-                &[
-                    &user_info.email,
-                    &user_info.first_name,
-                    &user_info.last_name,
-                    &user_info.username,
-                ],
-            )
-            .await?
-            .iter()
-            .map(|row| User::from_row_ref(row).unwrap())
-            .collect::<Vec<User>>()
-            .pop()
-            .ok_or(MyError::NotFound) // more applicable for SELECTs
-    }
-}
-
-mod handlers {
-    use crate::{db, errors::MyError, models::User};
-    use actix_web::{web, Error, HttpResponse};
-    use deadpool_postgres::{Client, Pool};
-
-    pub async fn add_user(
-        user: web::Json<User>,
-        db_pool: web::Data<Pool>,
-    ) -> Result<HttpResponse, Error> {
-        let user_info: User = user.into_inner();
-
-        let client: Client = db_pool.get().await.map_err(MyError::PoolError)?;
-
-        let new_user = db::add_user(&client, user_info).await?;
-
-        Ok(HttpResponse::Ok().json(new_user))
-    }
-}
+use crate::mongo::*;
+use crate::router::*;
+use crate::sqlite::*;
+use router::*;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -134,15 +39,15 @@ async fn main() -> std::io::Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(pool.clone()))
             .wrap(middleware::Logger::default())
-            .wrap(chegde_v::middleware::cors())
-            .app_data(pool.clone())
+            .wrap(crate::cors::cors())
+            .wrap(crate::redirect::CheckLogin)
             .service(token_controller)
             .service(home_controller)
             .service(note_detail)
             .service(get_website)
             .service(login)
-            .service(web::resource("/users").route(web::post().to(add_user)))
     })
     .bind(config.server_addr.clone())?
     .run();

@@ -1,6 +1,4 @@
-// use actix_service::Service;
-
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder, Result};
+use actix_web::{get, post, web, Either, HttpRequest, HttpResponse, Responder, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -8,20 +6,22 @@ use crate::diesel::prelude::*;
 use crate::models::system::*;
 use crate::postgres::*;
 use crate::sqlite::query;
-use tokio_postgres::{Client, NoTls};
+
+use crate::{db, errors::MyError, models::User};
+use deadpool_postgres::{Client, Pool};
 
 #[get("/")]
-async fn home_controller() -> impl Responder {
+pub async fn home_controller() -> impl Responder {
     format!("hi")
 }
 
 #[get("/token")]
-async fn token_controller() -> impl Responder {
+pub async fn token_controller() -> impl Responder {
     format!("Hello",)
 }
 
 #[derive(Serialize)]
-struct Error {
+pub struct Error {
     message: String,
 }
 
@@ -64,17 +64,20 @@ pub struct UserTable {
 }
 
 #[post("/login")]
-pub async fn login(info: web::Json<Info>) -> impl Responder {
-    let client = pg_connect();
+pub async fn login(
+    info: web::Json<Info>,
+    db_pool: web::Data<Pool>,
+) -> Either<web::Json<UserTable>, web::Json<Error>> {
+    let client: Client = db_pool.get().await.map_err(MyError::PoolError).unwrap();
+    println!("{:?}", info);
+
     let row = client
-        .await
         .query_one(
-            "SELECT * FROM public.user where username='$1' and password='$2'",
+            "SELECT * FROM public.user where username=$1 and password=$2",
             &[&info.username, &info.password],
         )
         .await;
 
-    println!("{:?}", info);
     match row {
         Ok(r) => {
             let person = UserTable {
@@ -83,17 +86,15 @@ pub async fn login(info: web::Json<Info>) -> impl Responder {
                 password: r.get(2),
                 object_id: r.get(3),
             };
-            web::Json(person)
+
+            Either::Left(web::Json(person))
         }
         Err(err) => {
             println!("error {:?}", err);
-            let person = UserTable {
-                id: 12,
-                username: "sad".to_string(),
-                password: "sad".to_string(),
-                object_id: "sad".to_string(),
+            let person = Error {
+                message: "adsf".to_string(),
             };
-            web::Json(person)
+            Either::Right(web::Json(person))
         }
     }
 }
