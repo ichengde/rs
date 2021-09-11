@@ -87,6 +87,13 @@ pub async fn login(
                 object_id: r.get(3),
             };
 
+            let too = crate::redirect::Claims {
+                sub: person.object_id.clone(),
+                exp: 600000000,
+            };
+
+            let res = crate::redirect::jwt_encode(too);
+            println!("encode: {:?}", res);
             Either::Left(web::Json(person))
         }
         Err(err) => {

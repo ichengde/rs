@@ -2,62 +2,36 @@ use std::task::{Context, Poll};
 
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
-use actix_web::{http, Error, HttpResponse};
-use futures::future::{ok, Either, Ready};
+use actix_web::{http, Error, HttpRequest, HttpResponse};
+use futures::future::{ok, Either, Future, Ready};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 
-pub struct CheckLogin;
-
-impl<S, B> Transform<S> for CheckLogin
-where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-{
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = CheckLoginMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
-
-    fn new_transform(&self, service: S) -> Self::Future {
-        ok(CheckLoginMiddleware { service })
-    }
-}
-pub struct CheckLoginMiddleware<S> {
-    service: S,
+/// Our claims struct, it needs to derive `Serialize` and/or `Deserialize`
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
 }
 
-impl<S, B> Service for CheckLoginMiddleware<S>
-where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-{
-    type Request = ServiceRequest;
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type Future = Either<S::Future, Ready<Result<Self::Response, Self::Error>>>;
+pub fn jwt_encode(
+    my_claims: Claims,
+) -> std::result::Result<std::string::String, jsonwebtoken::errors::Error> {
+    let token = encode(
+        &Header::default(),
+        &my_claims,
+        &EncodingKey::from_secret("secret".as_ref()),
+    );
 
-    fn poll_ready(&mut self, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
+    token
+}
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
-        let is_logged_in = false;
-
-        if is_logged_in {
-            Either::Left(self.service.call(req))
-        } else {
-            // Don't forward to /login if we are already on /login
-            if req.path() == "/login" {
-                Either::Left(self.service.call(req))
-            } else {
-                Either::Right(ok(req.into_response(
-                    HttpResponse::Found()
-                        .header(http::header::LOCATION, "/login")
-                        .finish()
-                        .into_body(),
-                )))
-            }
-        }
-    }
+pub fn jwt_decode(token: String) {
+    decode::<Claims>(
+        &token,
+        &DecodingKey::from_secret("secret".as_ref()),
+        &Validation::default(),
+    )
+    .map_err(|err| println!("jwt decode {:?}", err))
+    .ok();
 }
